@@ -52,7 +52,7 @@ script = ExtResource("5_stargate")
 [node name="Ring" type="CSGTorus3D" parent="Stargate"]
 inner_radius = 1.6
 outer_radius = 2.2
-rotation = Vector3(PI/2, 0, 0)
+rotation = Vector3(1.5708, 0, 0)
 position = Vector3(0, 2.2, 0)
 
 [node name="Portal" type="CSGBox3D" parent="Stargate"]

@@ -10,6 +10,10 @@ var portal_active: bool = false
 @onready var portal: CSGBox3D   = $Portal
 
 func _ready() -> void:
+	if portal and not portal.material:
+		var mat := StandardMaterial3D.new()
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		portal.material = mat
 	area.body_entered.connect(_on_body_entered)
 	GameManager.enemy_killed.connect(_on_enemy_killed)
 	_set_portal_state(false)
@@ -37,10 +41,10 @@ func _on_body_entered(body: Node3D) -> void:
 	if portal_active:
 		GameManager.player_won()
 	else:
-		# Feedback : la porte est inactive
+		# Feedback : la porte est inactive (flash scale)
 		var tween := create_tween()
-		tween.tween_property(ring, "modulate", Color(1, 0.3, 0.3), 0.1)
-		tween.tween_property(ring, "modulate", Color(1, 1, 1), 0.3)
+		tween.tween_property(ring, "scale", Vector3(1.12, 1.12, 1.12), 0.1)
+		tween.tween_property(ring, "scale", Vector3(1.0, 1.0, 1.0), 0.3)
 
 func _process(_delta: float) -> void:
 	# Animation de rotation de l'anneau quand la porte est active

@@ -173,12 +173,12 @@ func _die(disintegrate: bool) -> void:
 
 	var tween := create_tween()
 	if disintegrate:
-		# Effet désintégration : teinte bleue puis disparition
-		tween.tween_property($Body, "modulate", Color(0.3, 0.5, 1.0, 0.0), 0.6)
+		# Effet désintégration : rétrécissement rapide
+		tween.tween_property(self, "scale", Vector3(0.01, 0.01, 0.01), 0.5)
 	else:
-		# Chute et fondu
+		# Chute et disparition
 		tween.tween_property(self, "rotation:z", PI / 2.0, 0.3)
-		tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.8)
+		tween.tween_property(self, "scale", Vector3(0.0, 0.0, 0.0), 0.5)
 	tween.tween_callback(queue_free)
 
 # ─── Visuel placeholder ────────────────────────────────────────────────────────

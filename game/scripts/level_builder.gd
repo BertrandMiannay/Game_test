@@ -100,9 +100,10 @@ func _build_decorations() -> void:
 
 	# Rampe d'accès à la zone Porte
 	var ramp := CSGBox3D.new()
-	ramp.size     = Vector3(10, 0.6, 5)
-	ramp.position = Vector3(0, 0.0, -16)
-	ramp.rotation.x = deg_to_rad(-7)
+	ramp.size          = Vector3(10, 0.6, 5)
+	ramp.position      = Vector3(0, 0.0, -16)
+	ramp.rotation.x    = deg_to_rad(-7)
+	ramp.use_collision = true
 	var rmat := StandardMaterial3D.new()
 	rmat.albedo_color = COL_WALL
 	ramp.material = rmat
@@ -111,8 +112,9 @@ func _build_decorations() -> void:
 # ─── Utilitaire ────────────────────────────────────────────────────────────────
 func _box(pos: Vector3, size: Vector3, color: Color) -> CSGBox3D:
 	var b   := CSGBox3D.new()
-	b.size     = size
-	b.position = pos
+	b.size          = size
+	b.position      = pos
+	b.use_collision = true
 	var mat    := StandardMaterial3D.new()
 	mat.albedo_color = color
 	b.material = mat
