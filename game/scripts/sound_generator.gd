@@ -40,6 +40,26 @@ static func make_zat() -> AudioStreamWAV:
 		data[i * 2 + 1] = (s >> 8) & 0xFF
 	return _build(data)
 
+# ─── Bâton de combat Goa'uld : décharge plasma grave ─────────────────────────
+static func make_staff() -> AudioStreamWAV:
+	var duration := 0.30
+	var n := int(SAMPLE_RATE * duration)
+	var data := PackedByteArray()
+	data.resize(n * 2)
+	for i in n:
+		var t   := float(i) * SAMPLE_TIME
+		var env := exp(-t * 12.0)
+		# Sweep descendant 220 Hz → 60 Hz
+		var phase := TAU * (220.0 * t - 80.0 * t * t / duration)
+		var body  := sin(phase) * 0.75
+		# Harmonique haute pour la texture plasma
+		var crack := sin(phase * 3.0) * 0.2 * exp(-t * 30.0)
+		var val   := clampf((body + crack) * env, -1.0, 1.0)
+		var s     := int(val * 32767)
+		data[i * 2]     = s & 0xFF
+		data[i * 2 + 1] = (s >> 8) & 0xFF
+	return _build(data)
+
 # ─── Utilitaire ───────────────────────────────────────────────────────────────
 static func _build(data: PackedByteArray) -> AudioStreamWAV:
 	var stream := AudioStreamWAV.new()

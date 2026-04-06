@@ -25,6 +25,7 @@ const GRAVITY := 9.8
 
 # ─── Références ────────────────────────────────────────────────────────────────
 @onready var attack_timer: Timer = $AttackTimer
+var audio_player: AudioStreamPlayer3D
 
 # ─── Initialisation ────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -39,6 +40,11 @@ func _ready() -> void:
 	# Points de patrouille autour du spawn
 	var s := global_position
 	patrol_points = [s, s + Vector3(4, 0, 0), s + Vector3(4, 0, 4), s + Vector3(0, 0, 4)]
+
+	audio_player = AudioStreamPlayer3D.new()
+	audio_player.max_distance = 50.0
+	audio_player.stream = SoundGenerator.make_staff()
+	add_child(audio_player)
 
 	_build_mesh()
 
@@ -78,7 +84,8 @@ func _scan_for_player() -> void:
 		player = get_tree().get_first_node_in_group("player")
 	if player == null:
 		return
-	if global_position.distance_to(player.global_position) <= detection_range:
+	if global_position.distance_to(player.global_position) <= detection_range \
+			and _has_line_of_sight():
 		state = State.CHASE
 
 func _do_patrol() -> void:
@@ -130,10 +137,39 @@ func _do_attack() -> void:
 	velocity.x = 0
 	velocity.z = 0
 
-	if can_attack and player.has_method("take_damage"):
+	if not _has_line_of_sight():
+		state = State.CHASE
+		return
+
+	if can_attack:
 		can_attack = false
-		player.take_damage(attack_damage)
+		_fire_projectile()
+		audio_player.play()
 		attack_timer.start()
+
+func _has_line_of_sight() -> bool:
+	if player == null:
+		return false
+	var from  := global_position + Vector3(0, 1.4, 0)
+	var to    := player.global_position + Vector3(0, 0.9, 0)
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.exclude = [get_rid()]
+	var result := get_world_3d().direct_space_state.intersect_ray(query)
+	return not result.is_empty() and (result["collider"] as Node).is_in_group("player")
+
+func _fire_projectile() -> void:
+	var muzzle := global_position + Vector3(0, 1.2, 0)
+	var target := player.global_position + Vector3(0, 0.9, 0)
+	var dir    := (target - muzzle).normalized()
+
+	# Spawn légèrement en avant pour éviter l'auto-collision
+	muzzle += dir * 0.6
+
+	var proj := preload("res://scripts/projectile.gd").new()
+	proj.direction = dir
+	proj.damage    = attack_damage
+	get_tree().current_scene.add_child(proj)
+	proj.global_position = muzzle
 
 func _look_toward(target: Vector3) -> void:
 	if target != global_position:
