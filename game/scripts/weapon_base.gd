@@ -14,6 +14,7 @@ class_name WeaponBase
 var current_ammo: int
 var can_shoot: bool    = true
 var is_reloading: bool = false
+var audio_player: AudioStreamPlayer3D
 
 # ─── Références (définies dans les scènes enfants) ────────────────────────────
 @onready var shoot_timer:  Timer     = $ShootTimer
@@ -32,7 +33,15 @@ func _ready() -> void:
 	reload_timer.one_shot  = true
 	reload_timer.timeout.connect(_on_reload_timer_timeout)
 
+	audio_player = AudioStreamPlayer3D.new()
+	audio_player.max_distance = 50.0
+	audio_player.stream = _create_fire_sound()
+	add_child(audio_player)
+
 	_build_mesh()
+
+func _create_fire_sound() -> AudioStreamWAV:
+	return null
 
 # ─── Interface publique ────────────────────────────────────────────────────────
 func try_shoot() -> void:
@@ -55,7 +64,12 @@ func _shoot() -> void:
 	current_ammo -= 1
 	_perform_raycast()
 	GameManager.ammo_changed.emit(current_ammo, reserve_ammo)
+	_play_fire_sound()
 	shoot_timer.start()
+
+func _play_fire_sound() -> void:
+	if audio_player.stream:
+		audio_player.play()
 
 func _perform_raycast() -> void:
 	ray_cast.force_raycast_update()

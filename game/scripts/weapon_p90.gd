@@ -1,5 +1,8 @@
 extends WeaponBase
 
+func _create_fire_sound() -> AudioStreamWAV:
+	return SoundGenerator.make_p90()
+
 func _ready() -> void:
 	weapon_name  = "P90"
 	damage       = 18.0

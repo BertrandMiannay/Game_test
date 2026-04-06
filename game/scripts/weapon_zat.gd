@@ -6,6 +6,9 @@ extends WeaponBase
 # Mode 3 → désintègre le corps (supprime le nœud)
 var shot_mode: int = 1
 
+func _create_fire_sound() -> AudioStreamWAV:
+	return SoundGenerator.make_zat()
+
 func _ready() -> void:
 	weapon_name  = "Zat'nik'tel"
 	damage       = 40.0
@@ -42,6 +45,7 @@ func _shoot() -> void:
 	shot_mode = (shot_mode % 3) + 1
 
 	GameManager.ammo_changed.emit(current_ammo, reserve_ammo)
+	_play_fire_sound()
 	shoot_timer.start()
 
 func _build_mesh() -> void:
