@@ -65,9 +65,3 @@ func _setup_input_actions() -> void:
 			ev.physical_keycode = keycode
 			InputMap.action_add_event(action_name, ev)
 
-	# Tir = clic gauche
-	if not InputMap.has_action("shoot"):
-		InputMap.add_action("shoot")
-	var mouse_ev := InputEventMouseButton.new()
-	mouse_ev.button_index = MOUSE_BUTTON_LEFT
-	InputMap.action_add_event("shoot", mouse_ev)

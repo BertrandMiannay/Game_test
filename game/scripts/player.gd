@@ -15,6 +15,10 @@ var health: float
 var weapons: Array[Node] = []
 var current_weapon_index: int = -1
 
+# ─── État tir ──────────────────────────────────────────────────────────────────
+var shooting: bool      = false
+var shoot_just_pressed: bool = false
+
 # ─── Références ────────────────────────────────────────────────────────────────
 @onready var head: Node3D          = $Head
 @onready var camera: Camera3D      = $Head/Camera3D
@@ -35,28 +39,49 @@ func _setup_weapons() -> void:
 	if weapons.size() > 0:
 		_switch_weapon(0)
 
-# ─── Input souris ──────────────────────────────────────────────────────────────
-func _unhandled_input(event: InputEvent) -> void:
-	if GameManager.game_ended:
-		if event.is_action_pressed("restart"):
-			GameManager.restart()
+# ─── Capture de tous les events avant tout autre handler ───────────────────────
+func _input(event: InputEvent) -> void:
+	# Rotation caméra
+	if event is InputEventMouseMotion:
+		if not GameManager.game_ended:
+			rotate_y(-event.relative.x * MOUSE_SENS)
+			head.rotate_x(-event.relative.y * MOUSE_SENS)
+			head.rotation.x = clamp(head.rotation.x, -PI / 2.0, PI / 2.0)
 		return
 
-	if event is InputEventMouseMotion:
-		rotate_y(-event.relative.x * MOUSE_SENS)
-		head.rotate_x(-event.relative.y * MOUSE_SENS)
-		head.rotation.x = clamp(head.rotation.x, -PI / 2.0, PI / 2.0)
+	# Clic souris
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
+					Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+				else:
+					shooting = true
+					shoot_just_pressed = true
+			else:
+				shooting = false
+		return
 
-	if event.is_action_pressed("weapon_1"):
-		_switch_weapon(0)
-	elif event.is_action_pressed("weapon_2"):
-		_switch_weapon(1)
-	elif event.is_action_pressed("ui_cancel"):
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	# Clavier
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.physical_keycode:
+			KEY_ESCAPE:
+				Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+				shooting = false
+			KEY_1:
+				_switch_weapon(0)
+			KEY_2:
+				_switch_weapon(1)
+			KEY_R:
+				_try_reload()
+			KEY_ENTER:
+				if GameManager.game_ended:
+					GameManager.restart()
 
 # ─── Physique ──────────────────────────────────────────────────────────────────
 func _physics_process(delta: float) -> void:
 	if GameManager.game_ended:
+		shooting = false
 		return
 
 	# Gravité
@@ -81,29 +106,37 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
-	# Tir
-	if Input.is_action_pressed("shoot"):
-		_try_shoot()
-	if Input.is_action_just_pressed("reload"):
-		_try_reload()
+	# Tir : auto = maintien, semi-auto = front montant seulement
+	var w := _current_weapon()
+	if shooting and w and (w.is_automatic or shoot_just_pressed):
+		w.try_shoot()
+	shoot_just_pressed = false
 
 # ─── Armes ─────────────────────────────────────────────────────────────────────
+func _current_weapon() -> WeaponBase:
+	if current_weapon_index >= 0 and current_weapon_index < weapons.size():
+		return weapons[current_weapon_index] as WeaponBase
+	return null
+
 func _switch_weapon(index: int) -> void:
 	if index < 0 or index >= weapons.size():
 		return
-	if current_weapon_index >= 0 and current_weapon_index < weapons.size():
-		weapons[current_weapon_index].visible = false
+	var prev := _current_weapon()
+	if prev:
+		prev.visible = false
 	current_weapon_index = index
 	weapons[current_weapon_index].visible = true
 	GameManager.weapon_changed.emit(weapons[current_weapon_index])
 
 func _try_shoot() -> void:
-	if current_weapon_index >= 0 and current_weapon_index < weapons.size():
-		weapons[current_weapon_index].try_shoot()
+	var w := _current_weapon()
+	if w:
+		w.try_shoot()
 
 func _try_reload() -> void:
-	if current_weapon_index >= 0 and current_weapon_index < weapons.size():
-		weapons[current_weapon_index].reload()
+	var w := _current_weapon()
+	if w:
+		w.reload()
 
 # ─── Dégâts ────────────────────────────────────────────────────────────────────
 func take_damage(amount: float) -> void:

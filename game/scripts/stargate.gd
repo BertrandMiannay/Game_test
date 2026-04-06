@@ -46,7 +46,6 @@ func _on_body_entered(body: Node3D) -> void:
 		tween.tween_property(ring, "scale", Vector3(1.12, 1.12, 1.12), 0.1)
 		tween.tween_property(ring, "scale", Vector3(1.0, 1.0, 1.0), 0.3)
 
-func _process(_delta: float) -> void:
-	# Animation de rotation de l'anneau quand la porte est active
+func _process(delta: float) -> void:
 	if portal_active:
-		ring.rotation.z += 0.01
+		ring.rotation.z += 0.6 * delta

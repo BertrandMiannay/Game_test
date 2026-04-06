@@ -69,7 +69,8 @@ shape = SubResource("SphereShape3D_portal")
 [node name="Player" parent="." instance=ExtResource("1_player")]
 position = Vector3(0, 1.0, 26)
 
-; ─── Ennemis (6 Jaffa répartis dans la base) ─────────────────────────────────
+
+; ─── Ennemis ─────────────────────────────────────────────────────────────────
 [node name="Enemies" type="Node3D" parent="."]
 
 [node name="Jaffa1" parent="Enemies" instance=ExtResource("2_jaffa")]

@@ -68,7 +68,7 @@ func _physics_process(delta: float) -> void:
 	match state:
 		State.PATROL: _do_patrol()
 		State.CHASE:  _do_chase()
-		State.ATTACK: _do_attack(delta)
+		State.ATTACK: _do_attack()
 
 	move_and_slide()
 
@@ -113,13 +113,9 @@ func _do_chase() -> void:
 	dir.y   = 0
 	velocity.x = dir.x * chase_speed
 	velocity.z = dir.z * chase_speed
+	_look_toward(global_position + Vector3(dir.x, 0, dir.z))
 
-	# Orientation vers le joueur
-	var look_target := global_position + Vector3(dir.x, 0, dir.z)
-	if look_target != global_position:
-		look_at(look_target, Vector3.UP)
-
-func _do_attack(_delta: float) -> void:
+func _do_attack() -> void:
 	if player == null:
 		state = State.PATROL
 		return
@@ -129,10 +125,7 @@ func _do_attack(_delta: float) -> void:
 		state = State.CHASE
 		return
 
-	# Orientation vers le joueur
-	var look_target := Vector3(player.global_position.x, global_position.y, player.global_position.z)
-	if look_target != global_position:
-		look_at(look_target, Vector3.UP)
+	_look_toward(Vector3(player.global_position.x, global_position.y, player.global_position.z))
 
 	velocity.x = 0
 	velocity.z = 0
@@ -141,6 +134,10 @@ func _do_attack(_delta: float) -> void:
 		can_attack = false
 		player.take_damage(attack_damage)
 		attack_timer.start()
+
+func _look_toward(target: Vector3) -> void:
+	if target != global_position:
+		look_at(target, Vector3.UP)
 
 # ─── Dégâts & mort ─────────────────────────────────────────────────────────────
 func take_damage(amount: float) -> void:

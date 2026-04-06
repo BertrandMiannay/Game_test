@@ -69,8 +69,8 @@ func _on_shoot_timer_timeout() -> void:
 	can_shoot = true
 
 func _on_reload_timer_timeout() -> void:
-	var needed    := max_ammo - current_ammo
-	var available := min(needed, reserve_ammo)
+	var needed    : int = max_ammo - current_ammo
+	var available : int = mini(needed, reserve_ammo)
 	current_ammo  += available
 	reserve_ammo  -= available
 	is_reloading   = false

@@ -1,2 +1,4 @@
+res://scripts/weapon_base.gd
+res://scripts/player.gd
 res://scripts/enemy_jaffa.gd
 res://scripts/stargate.gd
