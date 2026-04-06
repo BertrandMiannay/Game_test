@@ -4,12 +4,12 @@ extends CharacterBody3D
 enum State { PATROL, CHASE, ATTACK, STUNNED, DEAD }
 
 # ─── Paramètres ────────────────────────────────────────────────────────────────
-@export var max_health: float     = 80.0
-@export var walk_speed: float     = 2.5
-@export var chase_speed: float    = 4.5
+@export var max_health: float      = 80.0
+@export var walk_speed: float      = 2.5
+@export var chase_speed: float     = 4.5
 @export var detection_range: float = 18.0
-@export var attack_range: float   = 7.0
-@export var attack_damage: float  = 12.0
+@export var attack_range: float    = 7.0
+@export var attack_damage: float   = 12.0
 @export var attack_cooldown: float = 2.0
 
 # ─── État interne ──────────────────────────────────────────────────────────────
@@ -22,6 +22,15 @@ var patrol_points: Array[Vector3] = []
 var patrol_index: int   = 0
 
 const GRAVITY := 9.8
+
+# ─── Pivots d'animation ────────────────────────────────────────────────────────
+var _pivot_left_leg:  Node3D
+var _pivot_right_leg: Node3D
+var _pivot_left_arm:  Node3D
+var _pivot_right_arm: Node3D
+
+var _anim_time:   float = 0.0   # accumulateur de temps pour la marche
+var _attack_anim: float = 0.0   # [0..1] progression de l'animation d'attaque
 
 # ─── Références ────────────────────────────────────────────────────────────────
 @onready var attack_timer: Timer = $AttackTimer
@@ -37,7 +46,6 @@ func _ready() -> void:
 	attack_timer.one_shot  = true
 	attack_timer.timeout.connect(func(): can_attack = true)
 
-	# Points de patrouille autour du spawn
 	var s := global_position
 	patrol_points = [s, s + Vector3(4, 0, 0), s + Vector3(4, 0, 4), s + Vector3(0, 0, 4)]
 
@@ -53,11 +61,9 @@ func _physics_process(delta: float) -> void:
 	if state == State.DEAD:
 		return
 
-	# Gravité
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 
-	# Étourdissement
 	if state == State.STUNNED:
 		stun_timer -= delta
 		velocity.x = move_toward(velocity.x, 0, 10.0)
@@ -67,7 +73,6 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 
-	# Détection du joueur
 	if state == State.PATROL:
 		_scan_for_player()
 
@@ -77,6 +82,41 @@ func _physics_process(delta: float) -> void:
 		State.ATTACK: _do_attack()
 
 	move_and_slide()
+
+func _process(delta: float) -> void:
+	if state == State.DEAD:
+		return
+	_animate(delta)
+
+# ─── Animation procédurale ─────────────────────────────────────────────────────
+func _animate(delta: float) -> void:
+	var is_moving := state == State.PATROL or state == State.CHASE
+
+	# Accumulation du temps uniquement en mouvement
+	if is_moving:
+		_anim_time += delta * 5.0   # fréquence de pas
+
+	# Décroissance de l'animation d'attaque
+	if _attack_anim > 0.0:
+		_attack_anim = max(0.0, _attack_anim - delta * 2.5)
+
+	# ── Jambes : oscillation avant/arrière ──────────────────────────────────────
+	var leg_angle := sin(_anim_time) * 0.45 if is_moving else 0.0
+	if _pivot_left_leg:
+		_pivot_left_leg.rotation.x  = leg_angle
+	if _pivot_right_leg:
+		_pivot_right_leg.rotation.x = -leg_angle
+
+	# ── Bras : balancement opposé aux jambes ────────────────────────────────────
+	var arm_swing := sin(_anim_time) * 0.30 if is_moving else 0.0
+
+	if _pivot_left_arm:
+		_pivot_left_arm.rotation.x = -arm_swing
+
+	# Bras droit : balancement + soulèvement lors de l'attaque
+	var raise := _attack_anim * -1.2   # -1.2 rad ≈ lever le bras vers l'avant/haut
+	if _pivot_right_arm:
+		_pivot_right_arm.rotation.x = arm_swing + raise
 
 # ─── Comportements ─────────────────────────────────────────────────────────────
 func _scan_for_player() -> void:
@@ -158,11 +198,12 @@ func _has_line_of_sight() -> bool:
 	return not result.is_empty() and (result["collider"] as Node).is_in_group("player")
 
 func _fire_projectile() -> void:
+	_attack_anim = 1.0   # déclenche l'animation de levée du bras
+
 	var muzzle := global_position + Vector3(0, 1.2, 0)
 	var target := player.global_position + Vector3(0, 0.9, 0)
 	var dir    := (target - muzzle).normalized()
 
-	# Spawn légèrement en avant pour éviter l'auto-collision
 	muzzle += dir * 0.6
 
 	var proj := preload("res://scripts/projectile.gd").new()
@@ -182,7 +223,6 @@ func take_damage(amount: float) -> void:
 
 	health -= amount
 
-	# Alerter le Jaffa s'il patrouillait
 	if state == State.PATROL:
 		if player == null:
 			player = get_tree().get_first_node_in_group("player")
@@ -202,46 +242,144 @@ func _die(disintegrate: bool) -> void:
 	state    = State.DEAD
 	velocity = Vector3.ZERO
 	set_physics_process(false)
+	set_process(false)
 	GameManager.notify_enemy_killed()
 
 	var tween := create_tween()
 	if disintegrate:
-		# Effet désintégration : rétrécissement rapide
 		tween.tween_property(self, "scale", Vector3(0.01, 0.01, 0.01), 0.5)
 	else:
-		# Chute et disparition
 		tween.tween_property(self, "rotation:z", PI / 2.0, 0.3)
 		tween.tween_property(self, "scale", Vector3(0.0, 0.0, 0.0), 0.5)
 	tween.tween_callback(queue_free)
 
-# ─── Visuel placeholder ────────────────────────────────────────────────────────
+# ─── Visuel Jaffa ──────────────────────────────────────────────────────────────
 func _build_mesh() -> void:
-	# Corps (capsule bleue/rouge = Jaffa)
-	var body := CSGCylinder3D.new()
-	body.name   = "Body"
-	body.radius = 0.35
-	body.height = 1.6
-	body.position = Vector3(0, 0.8, 0)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.15, 0.10, 0.08)  # Armure sombre Jaffa
-	body.material = mat
-	add_child(body)
+	var armor := _mat(Color(0.10, 0.07, 0.06), 0.85, 0.35)
+	var gold  := _mat(Color(0.72, 0.55, 0.08), 0.95, 0.15)
+	var skin  := _mat(Color(0.52, 0.36, 0.22), 0.00, 0.85)
+	var metal := _mat(Color(0.18, 0.16, 0.14), 0.80, 0.40)
 
-	# Tête
-	var head := CSGSphere3D.new()
-	head.radius   = 0.28
-	head.position = Vector3(0, 1.75, 0)
-	var mat2 := StandardMaterial3D.new()
-	mat2.albedo_color = Color(0.65, 0.50, 0.35)
-	head.material = mat2
-	add_child(head)
+	# ── Jambes avec pivots à la hanche ──────────────────────────────────────────
+	_pivot_left_leg  = _make_pivot(Vector3(-0.12, 0.95, 0))
+	_pivot_right_leg = _make_pivot(Vector3( 0.12, 0.95, 0))
 
-	# Détail : emblème Goa'uld (disque doré sur la poitrine)
-	var emblem := CSGBox3D.new()
-	emblem.size     = Vector3(0.15, 0.15, 0.05)
-	emblem.position = Vector3(0, 1.0, 0.33)
-	var mat3 := StandardMaterial3D.new()
-	mat3.albedo_color = Color(0.80, 0.65, 0.10)
-	mat3.metallic     = 0.9
-	emblem.material   = mat3
-	add_child(emblem)
+	# Les jambes sont décalées vers le bas par rapport au pivot de hanche
+	_cyl_on(_pivot_left_leg,  Vector3(0, -0.48, 0), 0.10, 0.95, armor)
+	_cyl_on(_pivot_right_leg, Vector3(0, -0.48, 0), 0.10, 0.95, armor)
+
+	# Genouillères sur les pivots
+	_box_on(_pivot_left_leg,  Vector3(0, -0.40, 0.07), Vector3(0.13, 0.08, 0.07), gold)
+	_box_on(_pivot_right_leg, Vector3(0, -0.40, 0.07), Vector3(0.13, 0.08, 0.07), gold)
+
+	# ── Ceinture (fixe) ─────────────────────────────────────────────────────────
+	_box(Vector3(0, 0.95, 0), Vector3(0.38, 0.09, 0.30), gold)
+
+	# ── Torse (fixe) ────────────────────────────────────────────────────────────
+	_cyl(Vector3(0, 1.18, 0), 0.20, 0.44, armor)
+	_box(Vector3(0, 1.22, 0.13), Vector3(0.34, 0.28, 0.06), armor)   # plastron
+	_box(Vector3(0, 1.28, 0.17), Vector3(0.10, 0.10, 0.04), gold)    # emblème
+
+	# ── Bras avec pivots à l'épaule ─────────────────────────────────────────────
+	_pivot_left_arm  = _make_pivot(Vector3(-0.25, 1.46, 0))
+	_pivot_right_arm = _make_pivot(Vector3( 0.25, 1.46, 0))
+
+	_cyl_on(_pivot_left_arm,  Vector3(0, -0.25, 0), 0.065, 0.44, armor)
+	_cyl_on(_pivot_right_arm, Vector3(0, -0.25, 0), 0.065, 0.44, armor)
+
+	# Épaulières sur les pivots
+	_box_on(_pivot_left_arm,  Vector3(0,  0.00, 0), Vector3(0.15, 0.08, 0.22), gold)
+	_box_on(_pivot_right_arm, Vector3(0,  0.00, 0), Vector3(0.15, 0.08, 0.22), gold)
+
+	# ── Bâton de combat attaché au bras droit ───────────────────────────────────
+	# Décalé en X pour tenir dans la main droite
+	_cyl_on(_pivot_right_arm, Vector3(0.18, -0.55, 0), 0.022, 1.80, metal)   # hampe
+	_sphere_on(_pivot_right_arm, Vector3(0.18,  0.35, 0), 0.060, gold)        # cellule basse
+	_sphere_on(_pivot_right_arm, Vector3(0.18,  0.43, 0), 0.055, gold)        # cellule haute
+	_box_on(_pivot_right_arm, Vector3(0.18,  0.52, 0), Vector3(0.035, 0.10, 0.035), gold)  # pointe
+
+	# ── Cou + tête (fixes) ──────────────────────────────────────────────────────
+	_cyl(Vector3(0, 1.60, 0), 0.072, 0.10, skin)
+	_sphere(Vector3(0, 1.72, 0), 0.155, skin)
+
+	# ── Casque cobra ─────────────────────────────────────────────────────────────
+	_sphere(Vector3(0, 1.76, 0), 0.185, armor)
+	_box(Vector3(0, 2.00, -0.04), Vector3(0.055, 0.22, 0.055), gold)
+	_box(Vector3(-0.16, 1.91, -0.06), Vector3(0.055, 0.17, 0.04), gold)
+	_box(Vector3( 0.16, 1.91, -0.06), Vector3(0.055, 0.17, 0.04), gold)
+
+# ─── Helpers de construction ───────────────────────────────────────────────────
+func _make_pivot(pos: Vector3) -> Node3D:
+	var p := Node3D.new()
+	p.position = pos
+	add_child(p)
+	return p
+
+func _mat(color: Color, metallic: float, roughness: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	m.metallic     = metallic
+	m.roughness    = roughness
+	return m
+
+# Helpers attachés au CharacterBody3D (positions absolues)
+func _cyl(pos: Vector3, radius: float, height: float, mat: StandardMaterial3D) -> void:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius    = radius
+	mesh.bottom_radius = radius
+	mesh.height        = height
+	var mi := MeshInstance3D.new()
+	mi.mesh              = mesh
+	mi.material_override = mat
+	mi.position          = pos
+	add_child(mi)
+
+func _box(pos: Vector3, size: Vector3, mat: StandardMaterial3D) -> void:
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	var mi := MeshInstance3D.new()
+	mi.mesh              = mesh
+	mi.material_override = mat
+	mi.position          = pos
+	add_child(mi)
+
+func _sphere(pos: Vector3, radius: float, mat: StandardMaterial3D) -> void:
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	var mi := MeshInstance3D.new()
+	mi.mesh              = mesh
+	mi.material_override = mat
+	mi.position          = pos
+	add_child(mi)
+
+# Helpers attachés à un pivot (positions relatives au pivot)
+func _cyl_on(pivot: Node3D, pos: Vector3, radius: float, height: float, mat: StandardMaterial3D) -> void:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius    = radius
+	mesh.bottom_radius = radius
+	mesh.height        = height
+	var mi := MeshInstance3D.new()
+	mi.mesh              = mesh
+	mi.material_override = mat
+	mi.position          = pos
+	pivot.add_child(mi)
+
+func _box_on(pivot: Node3D, pos: Vector3, size: Vector3, mat: StandardMaterial3D) -> void:
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	var mi := MeshInstance3D.new()
+	mi.mesh              = mesh
+	mi.material_override = mat
+	mi.position          = pos
+	pivot.add_child(mi)
+
+func _sphere_on(pivot: Node3D, pos: Vector3, radius: float, mat: StandardMaterial3D) -> void:
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	var mi := MeshInstance3D.new()
+	mi.mesh              = mesh
+	mi.material_override = mat
+	mi.position          = pos
+	pivot.add_child(mi)
