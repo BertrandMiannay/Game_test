@@ -1,0 +1,103 @@
+[gd_scene load_steps=2 format=3 uid="uid://stargate_hud"]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_hud")
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HealthBar" type="ProgressBar" parent="Control"]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -64.0
+offset_right = 240.0
+offset_bottom = -36.0
+value = 100.0
+show_percentage = false
+
+[node name="HealthLabel" type="Label" parent="Control"]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -32.0
+offset_right = 240.0
+offset_bottom = -8.0
+text = "100 / 100"
+
+[node name="EnemiesLabel" type="Label" parent="Control"]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 220.0
+offset_bottom = 36.0
+text = "Jaffa : 0"
+
+[node name="WeaponLabel" type="Label" parent="Control"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -90.0
+offset_right = -16.0
+offset_bottom = -62.0
+horizontal_alignment = 2
+text = "P90"
+
+[node name="AmmoLabel" type="Label" parent="Control"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -58.0
+offset_right = -16.0
+offset_bottom = -32.0
+horizontal_alignment = 2
+text = "50  |  200"
+
+[node name="Crosshair" type="ColorRect" parent="Control"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -3.0
+offset_top = -3.0
+offset_right = 3.0
+offset_bottom = 3.0
+color = Color(1, 1, 1, 0.85)
+
+[node name="MessageLabel" type="Label" parent="Control"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -60.0
+offset_right = 280.0
+offset_bottom = 60.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""

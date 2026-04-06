@@ -1,0 +1,94 @@
+[gd_scene load_steps=8 format=3 uid="uid://stargate_main_level"]
+
+[ext_resource type="PackedScene" path="res://scenes/player.tscn"        id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/jaffa.tscn"  id="2_jaffa"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn"         id="3_hud"]
+[ext_resource type="Script"      path="res://scripts/level_builder.gd"   id="4_builder"]
+[ext_resource type="Script"      path="res://scripts/stargate.gd"        id="5_stargate"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_portal"]
+radius = 2.0
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+background_color = Color(0.45, 0.35, 0.20, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.6, 0.5, 0.35, 1)
+ambient_light_energy = 0.5
+fog_enabled = true
+fog_light_color = Color(0.55, 0.42, 0.28, 1)
+fog_density = 0.008
+
+; ─── Racine ───────────────────────────────────────────────────────────────────
+[node name="MainLevel" type="Node3D"]
+
+; ─── Lumière principale (soleil de désert) ────────────────────────────────────
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, -0.354, 0.354, 0, 0.707, 0.707, -0.5, -0.612, 0.612, 0, 10, 0)
+light_color = Color(1.0, 0.92, 0.75, 1)
+light_energy = 1.8
+shadow_enabled = true
+
+; ─── Lumière d'ambiance douce ─────────────────────────────────────────────────
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+position = Vector3(0, 4, 0)
+light_color = Color(0.4, 0.35, 0.6, 1)
+light_energy = 0.4
+omni_range = 40.0
+
+; ─── Environnement (ciel désert / brume) ─────────────────────────────────────
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+; ─── Géométrie du niveau (construction CSG via script) ───────────────────────
+[node name="LevelGeometry" type="Node3D" parent="."]
+script = ExtResource("4_builder")
+
+; ─── Porte des Étoiles ────────────────────────────────────────────────────────
+[node name="Stargate" type="Node3D" parent="."]
+position = Vector3(0, 0, -28)
+script = ExtResource("5_stargate")
+
+[node name="Ring" type="CSGTorus3D" parent="Stargate"]
+inner_radius = 1.6
+outer_radius = 2.2
+rotation = Vector3(PI/2, 0, 0)
+position = Vector3(0, 2.2, 0)
+
+[node name="Portal" type="CSGBox3D" parent="Stargate"]
+size = Vector3(3.0, 4.0, 0.2)
+position = Vector3(0, 2.2, 0)
+
+[node name="Area3D" type="Area3D" parent="Stargate"]
+position = Vector3(0, 2.2, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Stargate/Area3D"]
+shape = SubResource("SphereShape3D_portal")
+
+; ─── Joueur ───────────────────────────────────────────────────────────────────
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector3(0, 1.0, 26)
+
+; ─── Ennemis (6 Jaffa répartis dans la base) ─────────────────────────────────
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="Jaffa1" parent="Enemies" instance=ExtResource("2_jaffa")]
+position = Vector3(-5, 1.0, 15)
+
+[node name="Jaffa2" parent="Enemies" instance=ExtResource("2_jaffa")]
+position = Vector3(5, 1.0, 12)
+
+[node name="Jaffa3" parent="Enemies" instance=ExtResource("2_jaffa")]
+position = Vector3(-10, 1.0, 0)
+
+[node name="Jaffa4" parent="Enemies" instance=ExtResource("2_jaffa")]
+position = Vector3(10, 1.0, -2)
+
+[node name="Jaffa5" parent="Enemies" instance=ExtResource("2_jaffa")]
+position = Vector3(-3, 1.0, -14)
+
+[node name="Jaffa6" parent="Enemies" instance=ExtResource("2_jaffa")]
+position = Vector3(3, 1.0, -16)
+
+; ─── HUD ──────────────────────────────────────────────────────────────────────
+[node name="HUD" parent="." instance=ExtResource("3_hud")]

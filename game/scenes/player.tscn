@@ -1,0 +1,46 @@
+[gd_scene load_steps=6 format=3 uid="uid://stargate_player"]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/weapon_p90.gd" id="2_p90"]
+[ext_resource type="Script" path="res://scripts/weapon_zat.gd" id="3_zat"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.4
+height = 1.8
+
+[node name="Player" type="CharacterBody3D"]
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_player")
+position = Vector3(0, 0.9, 0)
+
+[node name="Head" type="Node3D" parent="."]
+position = Vector3(0, 1.6, 0)
+
+[node name="Camera3D" type="Camera3D" parent="Head"]
+
+[node name="WeaponHolder" type="Node3D" parent="Head/Camera3D"]
+position = Vector3(0.18, -0.18, -0.35)
+
+[node name="P90" type="Node3D" parent="Head/Camera3D/WeaponHolder"]
+script = ExtResource("2_p90")
+
+[node name="RayCast3D" type="RayCast3D" parent="Head/Camera3D/WeaponHolder/P90"]
+target_position = Vector3(0, 0, -100)
+enabled = true
+
+[node name="ShootTimer" type="Timer" parent="Head/Camera3D/WeaponHolder/P90"]
+
+[node name="ReloadTimer" type="Timer" parent="Head/Camera3D/WeaponHolder/P90"]
+
+[node name="Zat" type="Node3D" parent="Head/Camera3D/WeaponHolder"]
+script = ExtResource("3_zat")
+
+[node name="RayCast3D" type="RayCast3D" parent="Head/Camera3D/WeaponHolder/Zat"]
+target_position = Vector3(0, 0, -100)
+enabled = true
+
+[node name="ShootTimer" type="Timer" parent="Head/Camera3D/WeaponHolder/Zat"]
+
+[node name="ReloadTimer" type="Timer" parent="Head/Camera3D/WeaponHolder/Zat"]

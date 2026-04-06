@@ -1,0 +1,21 @@
+; Engine configuration file.
+; Generated for Godot 4.x
+; Open this folder in Godot 4 to play.
+
+config_version=5
+
+[application]
+
+config/name="Stargate: First Defense"
+config/description="FPS vertical slice - Univers Stargate"
+run/main_scene="res://scenes/main_level.tscn"
+config/features=PackedStringArray("4.2", "Forward Plus")
+
+[autoload]
+
+GameManager="*res://scripts/autoload/game_manager.gd"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+environment/defaults/default_clear_color=Color(0.05, 0.04, 0.03, 1)
